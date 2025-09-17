@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"quiz-server/internal/api/socket"
 	"quiz-server/internal/system/config"
 	"quiz-server/internal/system/logger"
 
@@ -14,6 +15,12 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+func init() {
+	cfg := config.Setup()
+	log := logger.Setup(cfg.Env)
+	log.Info("setting up, env: %s", cfg.Env)
+}
+
 func handleSocketConnections(w http.ResponseWriter, r *http.Request) {
 	log := logger.Get("websocket")
 	ws, err := upgrader.Upgrade(w, r, nil)
@@ -23,27 +30,35 @@ func handleSocketConnections(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ws.Close()
 
+	log.Info("new connection %s", ws.RemoteAddr())
+	client := socket.NewClient(ws)
+	err = handle(client)
+	if err != nil {
+		log.Error("handle:", err)
+		client.Write(socket.Response{
+			Type: socket.InternalServerError,
+		})
+	}
+}
+
+func handle(client *socket.Client) error {
 	for {
-		messageType, message, err := ws.ReadMessage()
+		request, err := client.Read()
 		if err != nil {
-			log.Error("read:", err)
-			break
+			return err
 		}
 
-		log.Info("received: %s", message)
-
-		if err := ws.WriteMessage(messageType, message); err != nil {
-			log.Error("write:", err)
-			break
+		response := socket.Process(request)
+		err = client.Write(response)
+		if err != nil {
+			return err
 		}
-		log.Info("sent: %s", message)
 	}
 }
 
 func main() {
-	cfg := config.Setup()
-	log := logger.Setup(cfg.Env)
-	log.Info("setting up, env: %s", cfg.Env)
+	cfg := config.Get()
+	log := logger.Get("setup")
 
 	http.HandleFunc("/ws", handleSocketConnections)
 
