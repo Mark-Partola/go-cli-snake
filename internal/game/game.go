@@ -19,6 +19,7 @@ type game struct {
 	field     field
 	body      []Point
 	food      Point
+	score     int
 }
 
 type dimensions struct {
@@ -35,9 +36,10 @@ func New() game {
 	return game{
 		direction: right,
 		field:     NewField(dimensions{50, 20}),
-		body:      []Point{{2, 5}, {3, 5}, {4, 5}, {5, 5}},
+		body:      []Point{{2, 5}, {3, 5}},
 		food:      Point{10, 10},
 		intention: right,
+		score:     0,
 	}
 }
 
@@ -100,6 +102,7 @@ func (g *game) move() {
 func (g *game) tryToEat() {
 	head := g.body[len(g.body)-1]
 	if head.x == g.food.x && head.y == g.food.y {
+		g.score++
 		g.body = append(g.body, Point{head.x, head.y})
 		g.addFood()
 	}
@@ -148,6 +151,6 @@ func (g *game) GameOver() bool {
 	return !g.alive()
 }
 
-func (g *game) Score() int {
-	return len(g.body)
+func (g *game) Score() *int {
+	return &g.score
 }

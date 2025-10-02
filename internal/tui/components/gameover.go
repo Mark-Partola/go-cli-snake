@@ -8,10 +8,10 @@ import (
 )
 
 type GameOver struct {
-	score int
+	score *int
 }
 
-func NewGameOver(score int) Component {
+func NewGameOver(score *int) Component {
 	return &GameOver{score}
 }
 
@@ -43,7 +43,7 @@ func (m *GameOver) Render(props any) string {
 	rows := len(template) - 3
 
 	score := strings.Repeat("\n", rows)
-	score += "    Score: " + strconv.Itoa(m.score)
+	score += "    Score: " + strconv.Itoa(*m.score)
 	output, err := charmutils.Overlay(output, score, 0, 0, true)
 	if err != nil {
 		return err.Error()
