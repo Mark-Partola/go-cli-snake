@@ -1,0 +1,103 @@
+version: "2"
+
+run:
+  timeout: 5m
+  relative-path-mode: gomod
+  issues-exit-code: 1
+  tests: true
+  modules-download-mode: readonly
+
+output:
+  formats:
+    text:
+      print-linter-name: true
+      print-issued-lines: true
+      colors: true
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  uniq-by-line: true
+
+linters:
+  default: standard
+  enable:
+    - errcheck        # Проверяет, что ошибки не игнорируются
+    - staticcheck     # Глубокий статический анализ (includes gosimple, stylecheck)
+    - govet           # Встроенный в Go инструмент анализа (ловит потенциальные баги)
+    - gocritic        # Набор продвинутых правил для улучшения качества кода
+    - revive          # Проверяет стиль кода, оформление, названия
+    - unused          # Находит неиспользуемые переменные, типы, функции
+    - gosec           # Проверка на уязвимости и небезопасные практики
+    - depguard        # Запрещает импорт указанных пакетов (контроль зависимостей)
+    - bodyclose       # Проверяет, что закрывается `resp.Body` у HTTP-запросов
+    - asciicheck      # Предупреждает о не-ASCII символах в коде
+    - cyclop          # Контролирует цикломатическую сложность функций
+    - dupl            # Находит дублированные фрагменты кода
+    - ineffassign     # Обнаруживает неиспользуемые присваивания
+    - unparam         # Находит неиспользуемые параметры функций
+    - errorlint       # Рекомендует использовать `errors.Is` / `errors.As` вместо прямых сравнений
+    - errname         # Проверяет имена переменных/типов ошибок (должны содержать "Err")
+    - forbidigo       # Запрещает определённые вызовы или конструкции по regex-паттернам
+    - contextcheck    # Проверяет, что `context.Context` передаётся в методы/функции
+    - containedctx    # Предупреждает, если `context.Context` сохраняется в структуре (плохо)
+  disable:
+    - gocyclo
+    - lll
+    - gosec
+
+  exclusions:
+    generated: strict
+    rules:
+      - path: _test\.go
+        linters:
+          - cyclop
+          - dupl
+          - gosec
+
+  settings:
+    gosec:
+      config:
+        global:
+          audit: true
+          show-ignored: true
+        severity: "medium"
+        confidence: "medium"
+
+    cyclop:
+      max-complexity: 20
+
+    depguard:
+      rules:
+        main:
+          deny:
+            - pkg: io/ioutil
+              desc: "Deprecated package, use os/io instead"
+
+    revive:
+      severity: warning
+
+    forbidigo:
+      exclude-godoc-examples: true
+      analyze-types: true
+      forbid:
+        - pattern: '^fmt\.Print.*$'
+          msg: "Use logger"
+        - pattern: '^time\.Sleep$'
+          msg: "Forbidden time.Sleep (use timers/context)"
+        - pattern: '^http\.DefaultClient$'
+          msg: "Don't use http.DefaultClient (there are timeouts); use *http.Client with timeouts"
+
+formatters:
+  enable:
+    - gofumpt
+    - gci
+  settings:
+    gofumpt:
+      extra-rules: true 
+    gci:
+      sections:
+        - Standard
+        - Default
+        - Prefix(fuzzy-snake)
+      no-inline-comments: false
